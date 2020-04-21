@@ -2,15 +2,21 @@ package com.cj.flink.sql.launcher;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.cj.flink.sql.option.OptionParser;
+import com.cj.flink.sql.option.Options;
+import com.cj.flink.sql.util.PluginUtil;
+import org.apache.commons.io.Charsets;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URLDecoder;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 
 /**
@@ -37,10 +43,26 @@ public class LauncherMain {
      */
     private static String SP = File.separator;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         if (args.length == 1 && args[0].endsWith(".json")){
             args = parseJson(args);
         }
+        OptionParser optionParser = new OptionParser(args);
+        Options launcherOptions = optionParser.getOptions();
+
+        //运行模式
+        String mode = launcherOptions.getMode();
+
+        //["-sql", "select * from test", "-mode", "yarn"]
+        List<String> argList = optionParser.getProgramExeArgList();
+
+        //{\"time.characteristic\":\"EventTime\",\"sql.checkpoint.interval\":10000\}
+        //flink 任务的配置参数
+        String confProp = launcherOptions.getConfProp();
+        confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
+        Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
+
+
     }
 
 
