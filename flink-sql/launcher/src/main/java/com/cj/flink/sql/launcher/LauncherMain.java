@@ -2,6 +2,7 @@ package com.cj.flink.sql.launcher;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.cj.flink.sql.enums.ClusterMode;
 import com.cj.flink.sql.option.OptionParser;
 import com.cj.flink.sql.option.Options;
 import com.cj.flink.sql.util.PluginUtil;
@@ -61,6 +62,10 @@ public class LauncherMain {
         String confProp = launcherOptions.getConfProp();
         confProp = URLDecoder.decode(confProp, Charsets.UTF_8.toString());
         Properties confProperties = PluginUtil.jsonStrToObject(confProp, Properties.class);
+
+        if (mode.equals(ClusterMode.local.name())){
+            String[] localArgs = argList.toArray(new String[argList.size()]);
+        }
 
 
     }
