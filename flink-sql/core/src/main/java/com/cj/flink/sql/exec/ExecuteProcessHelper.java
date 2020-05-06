@@ -10,6 +10,7 @@ import com.cj.flink.sql.environment.MyLocalStreamEnvironment;
 import com.cj.flink.sql.environment.StreamEnvConfigManager;
 import com.cj.flink.sql.option.OptionParser;
 import com.cj.flink.sql.option.Options;
+import com.cj.flink.sql.parser.FlinkPlanner;
 import com.cj.flink.sql.util.PluginUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
@@ -104,7 +105,7 @@ public class ExecuteProcessHelper {
     }
 
     /**
-     * 构建环境
+     * 构建执行的execution 任务
      * @param paramsInfo
      * @return
      * @throws Exception
@@ -113,16 +114,21 @@ public class ExecuteProcessHelper {
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
         StreamQueryConfig streamQueryConfig = StreamEnvConfigManager.getStreamQueryConfig(tableEnv, paramsInfo.getConfProp());
+        // init global flinkPlanner
+        FlinkPlanner.createFlinkPlanner(tableEnv.getFrameworkConfig(), tableEnv.getPlanner(), tableEnv.getTypeFactory());
 
         return null;
     }
 
+    //创建flink 运行环境
     private static StreamExecutionEnvironment getStreamExeEnv(Properties confProperties, String deployMode) throws Exception {
         StreamExecutionEnvironment env = !ClusterMode.local.name().equals(deployMode) ?
                 StreamExecutionEnvironment.getExecutionEnvironment() :
                 new MyLocalStreamEnvironment();
 
-        return null;
+        //给env配置运行参数
+        StreamEnvConfigManager.streamExecutionEnvironmentConfig(env, confProperties);
+        return env;
     }
 
     /**
