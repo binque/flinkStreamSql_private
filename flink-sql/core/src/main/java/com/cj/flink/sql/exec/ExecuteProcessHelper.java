@@ -11,6 +11,8 @@ import com.cj.flink.sql.environment.StreamEnvConfigManager;
 import com.cj.flink.sql.option.OptionParser;
 import com.cj.flink.sql.option.Options;
 import com.cj.flink.sql.parser.FlinkPlanner;
+import com.cj.flink.sql.parser.SqlParser;
+import com.cj.flink.sql.parser.SqlTree;
 import com.cj.flink.sql.util.PluginUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
@@ -111,12 +113,15 @@ public class ExecuteProcessHelper {
      * @throws Exception
      */
     public static StreamExecutionEnvironment getStreamExecution(ParamsInfo paramsInfo) throws Exception {
+        //根据不同的运行模式选择不同的执行环境
         StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExeEnv(paramsInfo.getConfProp(), paramsInfo.getDeployMode());
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
         StreamQueryConfig streamQueryConfig = StreamEnvConfigManager.getStreamQueryConfig(tableEnv, paramsInfo.getConfProp());
         // init global flinkPlanner
         FlinkPlanner.createFlinkPlanner(tableEnv.getFrameworkConfig(), tableEnv.getPlanner(), tableEnv.getTypeFactory());
 
+        SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
+        SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
         return null;
     }
 

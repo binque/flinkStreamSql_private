@@ -1,5 +1,7 @@
 package com.cj.flink.sql;
 
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+
 import com.cj.flink.sql.exec.ExecuteProcessHelper;
 import com.cj.flink.sql.exec.ParamsInfo;
 import org.slf4j.Logger;
@@ -10,5 +12,6 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         ParamsInfo paramsInfo = ExecuteProcessHelper.parseParams(args);
+        StreamExecutionEnvironment env = ExecuteProcessHelper.getStreamExecution(paramsInfo);
     }
 }

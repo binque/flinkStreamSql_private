@@ -1,5 +1,7 @@
 package com.cj.flink.sql.parser;
 
+import com.cj.flink.sql.enums.ETableType;
+import com.cj.flink.sql.table.TableInfo;
 import com.cj.flink.sql.table.TableInfoParser;
 import com.cj.flink.sql.util.DtStringUtil;
 import com.google.common.base.Strings;
@@ -7,6 +9,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.Set;
 
 public class SqlParser {
 
@@ -38,11 +41,13 @@ public class SqlParser {
             throw new RuntimeException("need to set local sql plugin root");
         }
 
+        //将sql格式化成一行字符串
         sql = sql.replaceAll("--.*", "")
                 .replaceAll("\r\n", " ")
                 .replaceAll("\n", " ")
                 .replaceAll("\t", " ").trim();
 
+        //以；将每个sql语句分割开
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
         SqlTree sqlTree = new SqlTree();
         TableInfoParser tableInfoParser = new TableInfoParser();
@@ -71,6 +76,29 @@ public class SqlParser {
         if(sqlTree.getExecSqlList().size() == 0){
             throw new RuntimeException("sql no executable statement");
         }
+
+        for (InsertSqlParser.SqlParseResult result: sqlTree.getExecSqlList()) {
+            List<String> sourceTableList = result.getSourceTableList();
+            List<String> targetTableList = result.getTargetTableList();
+            Set<String> tmpTableList = sqlTree.getTmpTableMap().keySet();
+
+            for(String tableName : sourceTableList){
+
+                //temp 中不包括tableName ,那么这个tableName 的来源只能来自source
+                if (!tmpTableList.contains(tableName)){
+                    CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
+                    if(createTableResult == null){
+                        throw new RuntimeException("can't find table " + tableName);
+                    }
+
+                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                    sqlTree.addTableInfo(tableName, tableInfo);
+                }
+            }
+
+        }
+
         return null;
     }
 

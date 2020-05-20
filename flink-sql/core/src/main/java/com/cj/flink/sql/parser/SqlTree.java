@@ -22,7 +22,6 @@ public class SqlTree {
     private Map<String, CreateTmpTableParser.SqlParserResult> tmpTableMap = Maps.newHashMap();
 
 
-
     public List<CreateFuncParser.SqlParserResult> getFunctionList() {
         return functionList;
     }
@@ -39,12 +38,13 @@ public class SqlTree {
         return execSqlList;
     }
 
+
     public void addFunc(CreateFuncParser.SqlParserResult func){
         functionList.add(func);
     }
 
     /**
-     * 可以理解为处理source源
+     * 可以理解为处理source，sink 源
      * @param tableName
      * @param table
      */
