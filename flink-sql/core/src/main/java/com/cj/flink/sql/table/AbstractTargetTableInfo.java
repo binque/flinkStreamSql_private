@@ -20,15 +20,28 @@
 
 package com.cj.flink.sql.table;
 
-import java.util.regex.Matcher;
+import com.cj.flink.sql.format.FormatType;
 
 /**
  * Reason:
- * Date: 2018/7/4
+ * Date: 2018/6/25
  * Company: www.dtstack.com
  * @author xuchao
  */
-public interface ITableFieldDealHandler {
 
-    void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo);
+public abstract class AbstractTargetTableInfo extends AbstractTableInfo {
+
+    public static final String TARGET_SUFFIX = "Sink";
+
+    public static final String SINK_DATA_TYPE = "sinkdatatype";
+
+    private String sinkDataType = FormatType.JSON.name();
+
+    public String getSinkDataType() {
+        return sinkDataType;
+    }
+
+    public void setSinkDataType(String sinkDataType) {
+        this.sinkDataType = sinkDataType;
+    }
 }

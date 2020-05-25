@@ -1,6 +1,6 @@
 package com.cj.flink.sql.parser;
 
-import com.cj.flink.sql.table.TableInfo;
+import com.cj.flink.sql.table.AbstractTableInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -17,7 +17,7 @@ public class SqlTree {
 
     private Map<String, CreateTableParser.SqlParserResult> preDealTableMap = Maps.newHashMap();
 
-    private Map<String, TableInfo> tableInfoMap = Maps.newLinkedHashMap();
+    private Map<String, AbstractTableInfo> tableInfoMap = Maps.newLinkedHashMap();
 
     private Map<String, CreateTmpTableParser.SqlParserResult> tmpTableMap = Maps.newHashMap();
 
@@ -81,11 +81,11 @@ public class SqlTree {
         return tmpSqlList;
     }
 
-    public void addTableInfo(String tableName, TableInfo tableInfo){
+    public void addTableInfo(String tableName, AbstractTableInfo tableInfo){
         tableInfoMap.put(tableName, tableInfo);
     }
 
-    public Map<String, TableInfo> getTableInfoMap() {
+    public Map<String, AbstractTableInfo> getTableInfoMap() {
         return tableInfoMap;
     }
 

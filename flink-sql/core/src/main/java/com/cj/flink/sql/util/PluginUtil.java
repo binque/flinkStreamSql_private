@@ -156,7 +156,7 @@ public class PluginUtil {
         return CLASS_PRE_STR  + "." + type.toLowerCase() + "." + pluginTypeName + "." + pluginClassName;
     }
 
-    //com.cj.flink.sql.side.kudu.table.KuduSideParser
+    //com.cj.flink.sql.source.kafka.table.KafkaSourceParser
     public static String getSqlParserClassName(String pluginTypeName, String type){
 
         String pluginClassName = upperCaseFirstChar(pluginTypeName) + upperCaseFirstChar(type) +  "Parser";

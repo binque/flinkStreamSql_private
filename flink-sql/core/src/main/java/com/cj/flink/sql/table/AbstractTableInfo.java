@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public abstract class TableInfo implements Serializable {
+public abstract class AbstractTableInfo implements Serializable {
 
     public static final String PARALLELISM_KEY = "parallelism";
 

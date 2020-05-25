@@ -16,19 +16,29 @@
  * limitations under the License.
  */
 
- 
 
-package com.cj.flink.sql.table;
-
-import java.util.regex.Matcher;
+package com.cj.flink.sql.classloader;
 
 /**
- * Reason:
- * Date: 2018/7/4
- * Company: www.dtstack.com
- * @author xuchao
+ * Represents a supplier of results.
+ *
+ * <p>There is no requirement that a new or distinct result be returned each
+ * time the supplier is invoked.
+ *
+ * <p>This is a <a href="package-summary.html">functional interface</a>
+ * whose functional method is {@link #get()}.
+ *
+ * @param <T> the type of results supplied by this supplier
+ *
+ * @since 1.8
  */
-public interface ITableFieldDealHandler {
+@FunctionalInterface
+public interface ClassLoaderSupplier<T> {
 
-    void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo);
+    /**
+     * Gets a result.
+     *
+     * @return a result
+     */
+    T get(ClassLoader cl) throws Exception;
 }

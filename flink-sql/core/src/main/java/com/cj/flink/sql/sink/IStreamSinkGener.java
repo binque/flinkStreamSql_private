@@ -18,17 +18,17 @@
 
  
 
-package com.cj.flink.sql.table;
+package com.cj.flink.sql.sink;
 
-import java.util.regex.Matcher;
+import com.cj.flink.sql.table.AbstractTargetTableInfo;
 
 /**
  * Reason:
- * Date: 2018/7/4
+ * Date: 2017/7/31
  * Company: www.dtstack.com
  * @author xuchao
  */
-public interface ITableFieldDealHandler {
+public interface IStreamSinkGener<T> {
 
-    void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo);
+    T genStreamSink(AbstractTargetTableInfo targetTableInfo);
 }

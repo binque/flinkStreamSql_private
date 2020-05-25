@@ -23,6 +23,8 @@ package com.cj.flink.sql.source;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 
+import com.cj.flink.sql.table.AbstractSourceTableInfo;
+
 
 /**
  * Reason:
@@ -38,6 +40,6 @@ public interface IStreamSourceGener<T> {
      * @param tableEnv
      * @return
      */
-    //T genStreamSource(SourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv);
+    T genStreamSource(AbstractSourceTableInfo sourceTableInfo, StreamExecutionEnvironment env, StreamTableEnvironment tableEnv);
 
 }

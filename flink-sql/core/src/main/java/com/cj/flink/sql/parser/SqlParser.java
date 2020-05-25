@@ -1,8 +1,8 @@
 package com.cj.flink.sql.parser;
 
 import com.cj.flink.sql.enums.ETableType;
-import com.cj.flink.sql.table.TableInfo;
-import com.cj.flink.sql.table.TableInfoParser;
+import com.cj.flink.sql.table.AbstractTableInfo;
+import com.cj.flink.sql.table.AbstractTableInfoParser;
 import com.cj.flink.sql.util.DtStringUtil;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -50,7 +50,7 @@ public class SqlParser {
         //以；将每个sql语句分割开
         List<String> sqlArr = DtStringUtil.splitIgnoreQuota(sql, SQL_DELIMITER);
         SqlTree sqlTree = new SqlTree();
-        TableInfoParser tableInfoParser = new TableInfoParser();
+        AbstractTableInfoParser tableInfoParser = new AbstractTableInfoParser();
         //遍历sql语句
         for (String childSql: sqlArr) {
             if (Strings.isNullOrEmpty(childSql)){
@@ -84,14 +84,28 @@ public class SqlParser {
 
             for(String tableName : sourceTableList){
 
-                //temp 中不包括tableName ,那么这个tableName 的来源只能来自source
+                //temp 中不包括tableName ,那么这个tableName 的来源只能来自source/side
                 if (!tmpTableList.contains(tableName)){
                     CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
                     if(createTableResult == null){
                         throw new RuntimeException("can't find table " + tableName);
                     }
 
-                    TableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
+                    AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
+                            createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                    sqlTree.addTableInfo(tableName, tableInfo);
+                }
+            }
+
+            for(String tableName : targetTableList){
+                //temp 中不包括tableName ,那么这个tableName 的来源只能来自sink
+                if (!tmpTableList.contains(tableName)){
+                    CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
+                    if(createTableResult == null){
+                        throw new RuntimeException("can't find table " + tableName);
+                    }
+
+                    AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SINK.getType(),
                             createTableResult, LOCAL_SQL_PLUGIN_ROOT);
                     sqlTree.addTableInfo(tableName, tableInfo);
                 }
@@ -99,7 +113,30 @@ public class SqlParser {
 
         }
 
-        return null;
+
+        for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()){
+            List<String> sourceTableList = result.getSourceTableList();
+            for(String tableName : sourceTableList){
+                //临时表中的source不是来源子source节点
+                if (!sqlTree.getTableInfoMap().keySet().contains(tableName)){
+                    CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
+
+                    //一般来说只会是null
+                    if(createTableResult == null){
+                        CreateTmpTableParser.SqlParserResult tmpTableResult = sqlTree.getTmpTableMap().get(tableName);
+                        if (tmpTableResult == null){
+                            throw new RuntimeException("can't find table " + tableName);
+                        }
+                    } else {
+                        AbstractTableInfo tableInfo = tableInfoParser.parseWithTableType(ETableType.SOURCE.getType(),
+                                createTableResult, LOCAL_SQL_PLUGIN_ROOT);
+                        sqlTree.addTableInfo(tableName, tableInfo);
+                    }
+                }
+            }
+        }
+
+        return sqlTree;
     }
 
 }

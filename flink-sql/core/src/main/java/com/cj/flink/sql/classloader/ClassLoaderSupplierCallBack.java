@@ -16,19 +16,25 @@
  * limitations under the License.
  */
 
- 
 
-package com.cj.flink.sql.table;
-
-import java.util.regex.Matcher;
+package com.cj.flink.sql.classloader;
 
 /**
- * Reason:
- * Date: 2018/7/4
- * Company: www.dtstack.com
- * @author xuchao
+ * company: www.dtstack.com
+ * author: toutian
+ * create: 2019/10/14
  */
-public interface ITableFieldDealHandler {
+public class ClassLoaderSupplierCallBack {
 
-    void dealPrimaryKey(Matcher matcher, AbstractTableInfo tableInfo);
+    public static <R> R callbackAndReset(ClassLoaderSupplier<R> supplier, ClassLoader toSetClassLoader) throws Exception {
+        ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(toSetClassLoader);
+        try {
+            return supplier.get(toSetClassLoader);
+        } finally {
+            Thread.currentThread().setContextClassLoader(oldClassLoader);
+        }
+    }
+
+
 }
