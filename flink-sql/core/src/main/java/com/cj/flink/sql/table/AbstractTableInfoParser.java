@@ -2,6 +2,8 @@ package com.cj.flink.sql.table;
 
 import com.cj.flink.sql.enums.ETableType;
 import com.cj.flink.sql.parser.CreateTableParser;
+import com.cj.flink.sql.side.AbstractSideTableInfo;
+import com.cj.flink.sql.side.StreamSideFactory;
 import com.cj.flink.sql.sink.StreamSinkFactory;
 import com.cj.flink.sql.source.StreamSourceFactory;
 import com.cj.flink.sql.util.MathUtil;
@@ -65,7 +67,12 @@ public class AbstractTableInfoParser {
                     sourceTableInfoMap.put(type, absTableParser);
                 }
             }else {
-
+                absTableParser = sideTableInfoMap.get(type);
+                if(absTableParser == null){
+                    String cacheType = MathUtil.getString(props.get(AbstractSideTableInfo.CACHE_KEY));
+                    absTableParser = StreamSideFactory.getSqlParser(type, localPluginRoot, cacheType);
+                    sideTableInfoMap.put(type + cacheType, absTableParser);
+                }
             }
         }else if (tableType == ETableType.SINK.getType()){
             absTableParser = targetTableInfoMap.get(type);
