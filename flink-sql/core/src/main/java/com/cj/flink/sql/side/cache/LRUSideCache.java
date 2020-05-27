@@ -1,3 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+ 
+
 package com.cj.flink.sql.side.cache;
 
 import com.cj.flink.sql.side.AbstractSideTableInfo;
@@ -7,25 +27,12 @@ import com.google.common.cache.CacheBuilder;
 import java.util.concurrent.TimeUnit;
 
 /**
- * CREATE TABLE sideTable(
- *     id INT,
- *     name VARCHAR,
- *     PRIMARY KEY(id) ,
- *     PERIOD FOR SYSTEM_TIME
- *  )WITH(
- *     type ='mysql',
- *     url ='jdbc:mysql://172.16.10.204:3306/mqtest',
- *     userName ='dtstack',
- *     password ='1abc123',
- *     tableName ='yctest_mysql_10',
- *     partitionedJoin ='false',
- *     cache ='LRU',
- *     cacheSize ='10000',
- *     cacheTTLMs ='60000',
- *     asyncPoolSize ='3',
- *     parallelism ='1'
- *  );
+ * Reason:
+ * Date: 2018/9/10
+ * Company: www.dtstack.com
+ * @author xuchao
  */
+
 public class LRUSideCache extends AbstractSideCache {
 
     protected transient Cache<String, CacheObj> cache;
@@ -39,7 +46,7 @@ public class LRUSideCache extends AbstractSideCache {
         //当前只有LRU
         cache = CacheBuilder.newBuilder()
                 .maximumSize(sideTableInfo.getCacheSize())
-                .expireAfterWrite(sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS)   //是在指定项在一定时间内没有创建/覆盖时，会移除该key，下次取的时候从loading中取
+                .expireAfterWrite(sideTableInfo.getCacheTimeout(), TimeUnit.MILLISECONDS)
                 .build();
     }
 

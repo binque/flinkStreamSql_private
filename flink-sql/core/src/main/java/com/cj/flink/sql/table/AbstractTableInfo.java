@@ -36,6 +36,10 @@ public abstract class AbstractTableInfo implements Serializable {
 
     private Integer parallelism = -1;
 
+    public String[] getFieldTypes() {
+        return fieldTypes;
+    }
+
     public abstract boolean check();
 
     public String getType() {

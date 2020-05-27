@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.cj.flink.sql.side;
 
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
@@ -24,7 +42,11 @@ import static org.apache.calcite.sql.SqlKind.LITERAL;
 import static org.apache.calcite.sql.SqlKind.OR;
 
 /**
+ *
  *  将同级谓词信息填充到维表
+ * Date: 2019/12/11
+ * Company: www.dtstack.com
+ * @author maqi
  */
 public class SidePredicatesParser {
     public void fillPredicatesForSideTable(String exeSql, Map<String, AbstractSideTableInfo> sideTableMap) throws SqlParseException {
@@ -93,6 +115,7 @@ public class SidePredicatesParser {
                 .count();
     }
 
+
     private void extractPredicateInfo(SqlNode whereNode, List<PredicateInfo> predicatesInfoList) {
         SqlKind sqlKind = whereNode.getKind();
         if (sqlKind == SqlKind.AND && ((SqlBasicCall) whereNode).getOperandList().size() == 2) {
@@ -130,7 +153,7 @@ public class SidePredicatesParser {
                 String content = (operatorKind == SqlKind.BETWEEN) ? whereNode.getOperands()[conditionIndex].toString() + " AND " +
                         whereNode.getOperands()[2].toString() : whereNode.getOperands()[conditionIndex].toString();
 
-                if (StringUtils.containsIgnoreCase(content,SqlKind.CASE.toString())) {
+                if (StringUtils.containsIgnoreCase(content, SqlKind.CASE.toString())) {
                     return;
                 }
 
@@ -140,4 +163,5 @@ public class SidePredicatesParser {
             }
         }
     }
+
 }
