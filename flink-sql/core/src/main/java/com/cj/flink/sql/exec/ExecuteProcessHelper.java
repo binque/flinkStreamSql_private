@@ -2,32 +2,42 @@ package com.cj.flink.sql.exec;
 
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.StreamQueryConfig;
+import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 
+import com.cj.flink.sql.classloader.ClassLoaderManager;
 import com.cj.flink.sql.enums.ClusterMode;
 import com.cj.flink.sql.enums.EPluginLoadMode;
 import com.cj.flink.sql.environment.MyLocalStreamEnvironment;
 import com.cj.flink.sql.environment.StreamEnvConfigManager;
+import com.cj.flink.sql.function.FunctionManager;
 import com.cj.flink.sql.option.OptionParser;
 import com.cj.flink.sql.option.Options;
+import com.cj.flink.sql.parser.CreateFuncParser;
 import com.cj.flink.sql.parser.FlinkPlanner;
 import com.cj.flink.sql.parser.SqlParser;
 import com.cj.flink.sql.parser.SqlTree;
+import com.cj.flink.sql.side.AbstractSideTableInfo;
 import com.cj.flink.sql.util.PluginUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -108,6 +118,7 @@ public class ExecuteProcessHelper {
 
     /**
      * 构建执行的execution 任务
+     *
      * @param paramsInfo
      * @return
      * @throws Exception
@@ -122,7 +133,30 @@ public class ExecuteProcessHelper {
 
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
         SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
+
+        Map<String, AbstractSideTableInfo> sideTableMap = Maps.newHashMap();
+        Map<String, Table> registerTableCache = Maps.newHashMap();
+
+        //register udf
+        ExecuteProcessHelper.registerUserDefinedFunction(sqlTree, paramsInfo.getJarUrlList(), tableEnv);
         return null;
+    }
+
+    private static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv)
+            throws IllegalAccessException, InvocationTargetException {
+        // udf和tableEnv须由同一个类加载器加载
+        ClassLoader levelClassLoader = tableEnv.getClass().getClassLoader();
+        URLClassLoader classLoader = null;
+        List<CreateFuncParser.SqlParserResult> funcList = sqlTree.getFunctionList();
+        for (CreateFuncParser.SqlParserResult funcInfo : funcList) {
+            //classloader
+            if (classLoader == null) {
+                classLoader = ClassLoaderManager.loadExtraJar(jarUrlList, (URLClassLoader) levelClassLoader);
+            }
+
+            //TABLE|SCALA|AGGREGATE
+            FunctionManager.registerUDF(funcInfo.getType(), funcInfo.getClassName(), funcInfo.getName(), tableEnv, classLoader);
+        }
     }
 
     //创建flink 运行环境
