@@ -19,11 +19,11 @@
 
 package com.cj.flink.sql.side;
 
-import com.dtstack.flink.sql.classloader.ClassLoaderManager;
-import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.table.AbstractSideTableParser;
-import com.dtstack.flink.sql.table.AbstractTableParser;
-import com.dtstack.flink.sql.util.PluginUtil;
+import com.cj.flink.sql.classloader.ClassLoaderManager;
+import com.cj.flink.sql.enums.ECacheType;
+import com.cj.flink.sql.table.AbstractSideTableParser;
+import com.cj.flink.sql.table.AbstractTableParser;
+import com.cj.flink.sql.util.PluginUtil;
 
 /**
  * get specify side parser

@@ -44,9 +44,13 @@ public class StreamSourceFactory {
     public static Table getStreamSource(AbstractSourceTableInfo sourceTableInfo, StreamExecutionEnvironment env,
                                         StreamTableEnvironment tableEnv, String sqlRootDir) throws Exception {
 
+        //kafka09
         String sourceTypeStr = sourceTableInfo.getType();
+        //kafka
         String typeNoVersion = DtStringUtil.getPluginTypeWithoutVersion(sourceTypeStr);
+
         String pluginJarPath = PluginUtil.getJarFileDirPath(String.format(DIR_NAME_FORMAT, sourceTypeStr), sqlRootDir);
+        //com.cj.flink.sql.source.kafka.KafkaSource
         String className = PluginUtil.getGenerClassName(typeNoVersion, CURR_TYPE);
 
         return ClassLoaderManager.newInstance(pluginJarPath, (cl) -> {
