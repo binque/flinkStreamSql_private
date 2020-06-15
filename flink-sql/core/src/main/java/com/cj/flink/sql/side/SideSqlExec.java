@@ -34,14 +34,16 @@ import org.apache.flink.table.runtime.types.CRowTypeInfo;
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.types.Row;
 
-import com.dtstack.flink.sql.enums.ECacheType;
-import com.dtstack.flink.sql.exec.FlinkSQLExec;
-import com.dtstack.flink.sql.parser.CreateTmpTableParser;
-import com.dtstack.flink.sql.side.operator.SideAsyncOperator;
-import com.dtstack.flink.sql.side.operator.SideWithAllCacheOperator;
-import com.dtstack.flink.sql.util.ClassUtil;
-import com.dtstack.flink.sql.util.ParseUtils;
-import com.dtstack.flink.sql.util.TableUtils;
+import com.cj.flink.sql.util.ParseUtils;
+import com.cj.flink.sql.util.TableUtils;
+import com.cj.flink.sql.enums.ECacheType;
+import com.cj.flink.sql.exec.FlinkSQLExec;
+import com.cj.flink.sql.parser.CreateTmpTableParser;
+import com.cj.flink.sql.side.operator.SideAsyncOperator;
+import com.cj.flink.sql.side.operator.SideWithAllCacheOperator;
+import com.cj.flink.sql.util.ClassUtil;
+import com.cj.flink.sql.util.ParseUtils;
+import com.cj.flink.sql.util.TableUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Lists;
@@ -103,6 +105,7 @@ public class SideSqlExec {
 
         localTableCache.putAll(tableCache);
         try {
+            //tmp 中的sql
             sidePredicatesParser.fillPredicatesForSideTable(sql, sideTableMap);
         } catch (Exception e) {
             LOG.error("fill predicates for sideTable fail ", e);

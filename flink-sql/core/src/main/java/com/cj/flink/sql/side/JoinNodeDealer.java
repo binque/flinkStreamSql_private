@@ -22,9 +22,9 @@ package com.cj.flink.sql.side;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
-import com.dtstack.flink.sql.parser.FlinkPlanner;
-import com.dtstack.flink.sql.util.ParseUtils;
-import com.dtstack.flink.sql.util.TableUtils;
+import com.cj.flink.sql.parser.FlinkPlanner;
+import com.cj.flink.sql.util.ParseUtils;
+import com.cj.flink.sql.util.TableUtils;
 import com.esotericsoftware.minlog.Log;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBiMap;

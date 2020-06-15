@@ -1,5 +1,6 @@
 package com.cj.flink.sql.exec;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -8,11 +9,13 @@ import org.apache.flink.table.api.StreamQueryConfig;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.types.Row;
 
 import com.cj.flink.sql.classloader.ClassLoaderManager;
 import com.cj.flink.sql.enums.ClusterMode;
+import com.cj.flink.sql.enums.ECacheType;
 import com.cj.flink.sql.enums.EPluginLoadMode;
 import com.cj.flink.sql.environment.MyLocalStreamEnvironment;
 import com.cj.flink.sql.environment.StreamEnvConfigManager;
@@ -20,15 +23,19 @@ import com.cj.flink.sql.function.FunctionManager;
 import com.cj.flink.sql.option.OptionParser;
 import com.cj.flink.sql.option.Options;
 import com.cj.flink.sql.parser.CreateFuncParser;
+import com.cj.flink.sql.parser.CreateTmpTableParser;
 import com.cj.flink.sql.parser.FlinkPlanner;
+import com.cj.flink.sql.parser.InsertSqlParser;
 import com.cj.flink.sql.parser.SqlParser;
 import com.cj.flink.sql.parser.SqlTree;
 import com.cj.flink.sql.side.AbstractSideTableInfo;
+import com.cj.flink.sql.side.SideSqlExec;
 import com.cj.flink.sql.sink.StreamSinkFactory;
 import com.cj.flink.sql.source.StreamSourceFactory;
 import com.cj.flink.sql.table.AbstractSourceTableInfo;
 import com.cj.flink.sql.table.AbstractTableInfo;
 import com.cj.flink.sql.table.AbstractTargetTableInfo;
+import com.cj.flink.sql.util.DtStringUtil;
 import com.cj.flink.sql.util.PluginUtil;
 import com.cj.flink.sql.watermarker.WaterMarkerAssigner;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,6 +44,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -162,7 +171,67 @@ public class ExecuteProcessHelper {
         Set<URL> classPathSets = ExecuteProcessHelper.registerTable(sqlTree, env, tableEnv, paramsInfo.getLocalSqlPluginPath(),
                 paramsInfo.getRemoteSqlPluginPath(), paramsInfo.getPluginLoadMode(), sideTableMap, registerTableCache);
 
-        return null;
+        ExecuteProcessHelper.registerPluginUrlToCachedFile(env, classPathSets);
+
+        ExecuteProcessHelper.sqlTranslation(paramsInfo.getLocalSqlPluginPath(), tableEnv, sqlTree, sideTableMap, registerTableCache, streamQueryConfig);
+
+        if (env instanceof MyLocalStreamEnvironment) {
+            ((MyLocalStreamEnvironment) env).setClasspaths(ClassLoaderManager.getClassPath());
+        }
+        return env;
+    }
+
+    private static void sqlTranslation(String localSqlPluginPath,
+                                       StreamTableEnvironment tableEnv,
+                                       SqlTree sqlTree,
+                                       Map<String, AbstractSideTableInfo> sideTableMap,
+                                       Map<String, Table> registerTableCache,
+                                       StreamQueryConfig queryConfig) throws Exception {
+        SideSqlExec sideSqlExec = new SideSqlExec();
+        sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
+        for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
+            sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, result);
+        }
+
+        for (InsertSqlParser.SqlParseResult result : sqlTree.getExecSqlList()) {
+            if (LOG.isInfoEnabled()) {
+                LOG.info("exe-sql:\n" + result.getExecSql());
+            }
+            boolean isSide = false;
+            for (String tableName : result.getTargetTableList()) {
+                //中间表，create 出来的表
+                if (sqlTree.getTmpTableMap().containsKey(tableName)) {
+                    CreateTmpTableParser.SqlParserResult tmp = sqlTree.getTmpTableMap().get(tableName);
+
+                    //这里因为某些字段名两侧有``
+                    String realSql = DtStringUtil.replaceIgnoreQuota(result.getExecSql(), "`", "");
+
+                    FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
+                    SqlNode sqlNode = flinkPlanner.parse(realSql);
+                    String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
+                    tmp.setExecSql(tmpSql);
+                    sideSqlExec.exec(tmp.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, tmp);
+                } else {
+                    for (String sourceTable : result.getSourceTableList()) {
+                        if (sideTableMap.containsKey(sourceTable)) {
+                            isSide = true;
+                            break;
+                        }
+                    }
+                    if (isSide) {
+                        //sql-dimensional table contains the dimension table of execution
+                        sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, null);
+                    } else {
+                        LOG.info("----------exec sql without dimension join-----------");
+                        LOG.info("----------real sql exec is--------------------------\n{}", result.getExecSql());
+                        FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql(), queryConfig);
+                        if (LOG.isInfoEnabled()) {
+                            LOG.info("exec sql: " + result.getExecSql());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv)
@@ -266,9 +335,19 @@ public class ExecuteProcessHelper {
                 pluginClassPathSets.add(sourceTablePathUrl);
 
             }else if (tableInfo instanceof AbstractTargetTableInfo) {
+                //localSqlPluginPath 用来找到sink Parser 解析的
                 TableSink tableSink = StreamSinkFactory.getTableSink((AbstractTargetTableInfo) tableInfo, localSqlPluginPath);
-            } else if (tableInfo instanceof AbstractSideTableInfo) {
+                TypeInformation[] flinkTypes = FunctionManager.transformTypes(tableInfo.getFieldClasses());
+                tableEnv.registerTableSink(tableInfo.getName(), tableInfo.getFields(), flinkTypes, tableSink);
 
+                URL sinkTablePathUrl = PluginUtil.buildSourceAndSinkPathByLoadMode(tableInfo.getType(), AbstractTargetTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
+                pluginClassPathSets.add(sinkTablePathUrl);
+            } else if (tableInfo instanceof AbstractSideTableInfo) {
+                String sideOperator = ECacheType.ALL.name().equals(((AbstractSideTableInfo) tableInfo).getCacheType()) ? "all" : "async";
+                sideTableMap.put(tableInfo.getName(), (AbstractSideTableInfo) tableInfo);
+
+                URL sideTablePathUrl = PluginUtil.buildSidePathByLoadMode(tableInfo.getType(), sideOperator, AbstractSideTableInfo.TARGET_SUFFIX, localSqlPluginPath, remoteSqlPluginPath, pluginLoadMode);
+                pluginClassPathSets.add(sideTablePathUrl);
             }else {
                 throw new RuntimeException("not support table type:" + tableInfo.getType());
             }
@@ -284,6 +363,11 @@ public class ExecuteProcessHelper {
      * @param classPathSet
      */
     private static void registerPluginUrlToCachedFile(StreamExecutionEnvironment env, Set<URL> classPathSet) {
-
+        int i = 0;
+        for (URL url : classPathSet) {
+            String classFileName = String.format(CLASS_FILE_NAME_FMT, i);
+            env.registerCachedFile(url.getPath(), classFileName, true);
+            i++;
+        }
     }
 }

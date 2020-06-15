@@ -1,5 +1,6 @@
 package com.cj.flink.sql.function;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.functions.AggregateFunction;
@@ -92,5 +93,14 @@ public class FunctionManager {
             logger.error("", e);
             throw new RuntimeException("register Aggregate UDF exception:", e);
         }
+    }
+
+    public static TypeInformation[] transformTypes(Class[] fieldTypes) {
+        TypeInformation[] types = new TypeInformation[fieldTypes.length];
+        for (int i = 0; i < fieldTypes.length; i++) {
+            types[i] = TypeInformation.of(fieldTypes[i]);
+        }
+
+        return types;
     }
 }
