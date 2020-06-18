@@ -50,6 +50,8 @@ public abstract class AbstractTableParser {
         return true;
     }
 
+
+    //这个抽象方法就是根据不同的组件传入不同的组件信息
     public abstract AbstractTableInfo getTableInfo(String tableName, String fieldsInfo, Map<String, Object> props) throws Exception;
 
 
@@ -62,6 +64,7 @@ public abstract class AbstractTableParser {
      *  )
      *  fieldsInfo 就是括号中的字符串
      */
+    //这里主要是解析表中的字段属性，一些配置属性，就是在具体的算子实体类里面赋值，就是上面getTableInfo 参数props
     public void parseFieldsInfo(String fieldsInfo, AbstractTableInfo tableInfo){
         List<String> fieldRows = DtStringUtil.splitIgnoreQuota(fieldsInfo, ',');
         for(String fieldRow : fieldRows) {
