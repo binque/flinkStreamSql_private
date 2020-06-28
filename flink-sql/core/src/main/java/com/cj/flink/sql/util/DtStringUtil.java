@@ -1,18 +1,46 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+
 package com.cj.flink.sql.util;
 
 import com.cj.flink.sql.enums.ColumnType;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Test;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+/**
+ * Reason:
+ * Date: 2018/6/22
+ * Company: www.dtstack.com
+ * @author xuchao
+ */
 
 public class DtStringUtil {
 
@@ -137,6 +165,11 @@ public class DtStringUtil {
         return matcher.group(1);
     }
 
+    @Test
+    public void test(){
+        System.out.println(getPluginTypeWithoutVersion("db2"));
+    }
+
     /**
      * add specify params to dbUrl
      * @param dbUrl
@@ -193,14 +226,14 @@ public class DtStringUtil {
         return preStr + "?" + sb.toString();
     }
 
-    public  static boolean isJosn(String str){
+    public static boolean isJson(String str) {
         boolean flag = false;
-        if(StringUtils.isNotBlank(str)){
+        if (StringUtils.isNotBlank(str)) {
             try {
-                objectMapper.readValue(str,Map.class);
+                objectMapper.readValue(str, Map.class);
                 flag = true;
             } catch (Throwable e) {
-                flag=false;
+                flag = false;
             }
         }
         return flag;
@@ -235,14 +268,43 @@ public class DtStringUtil {
     }
 
     public static String getTableFullPath(String schema, String tableName) {
+        String[] tableInfoSplit = StringUtils.split(tableName, ".");
+        //表明表信息带了schema
+        if(tableInfoSplit.length == 2){
+            schema = tableInfoSplit[0];
+            tableName = tableInfoSplit[1];
+        }
+
+        //清理首个字符" 和最后字符 "
+        schema = rmStrQuote(schema);
+        tableName = rmStrQuote(tableName);
+
         if (StringUtils.isEmpty(schema)){
             return addQuoteForStr(tableName);
         }
+
         String schemaAndTabName = addQuoteForStr(schema) + "." + addQuoteForStr(tableName);
         return schemaAndTabName;
     }
 
+    /**
+     * 清理首个字符" 和最后字符 "
+     */
+    public static String rmStrQuote(String str){
+        if(StringUtils.isEmpty(str)){
+            return str;
+        }
 
+        if(str.startsWith("\"")){
+            str = str.substring(1);
+        }
+
+        if(str.endsWith("\"")){
+            str = str.substring(0, str.length()-1);
+        }
+
+        return str;
+    }
 
     public static String addQuoteForStr(String column) {
         return getStartQuote() + column + getEndQuote();
