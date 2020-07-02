@@ -85,7 +85,7 @@ public class OptionParser {
     }
 
     public List<String> getProgramExeArgList() throws Exception {
-        Map<String,Object> mapConf = PluginUtil.ObjectToMap(propertions);
+        Map<String,Object> mapConf = PluginUtil.objectToMap(propertions);
         List<String> args = Lists.newArrayList();
         for(Map.Entry<String, Object> one : mapConf.entrySet()){
             String key = one.getKey();

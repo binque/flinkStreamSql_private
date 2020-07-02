@@ -1,13 +1,26 @@
 package com.cj.flink.sql.launcher;
 
+import org.apache.flink.client.program.ClusterClient;
+import org.apache.flink.client.program.PackagedProgram;
+import org.apache.flink.client.program.PackagedProgramUtils;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.cj.flink.sql.Main;
+import com.cj.flink.sql.constrant.ConfigConstrant;
 import com.cj.flink.sql.enums.ClusterMode;
+import com.cj.flink.sql.launcher.perjob.PerJobSubmitter;
 import com.cj.flink.sql.option.OptionParser;
 import com.cj.flink.sql.option.Options;
 import com.cj.flink.sql.util.PluginUtil;
+import com.google.common.collect.Lists;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -45,6 +58,11 @@ public class LauncherMain {
      */
     private static String SP = File.separator;
 
+    private static String getLocalCoreJarPath(String localSqlRootJar) throws Exception {
+        String jarPath = PluginUtil.getCoreJarFileName(localSqlRootJar, CORE_JAR);
+        return localSqlRootJar + SP + jarPath;
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length == 1 && args[0].endsWith(".json")){
             args = parseJson(args);
@@ -70,6 +88,27 @@ public class LauncherMain {
             return;
         }
 
+        String pluginRoot = launcherOptions.getLocalSqlPluginPath();
+        File jarFile = new File(getLocalCoreJarPath(pluginRoot));
+        String[] remoteArgs = argList.toArray(new String[argList.size()]);
+        PackagedProgram program = new PackagedProgram(jarFile, Lists.newArrayList(), remoteArgs);
+        String savePointPath = confProperties.getProperty(ConfigConstrant.SAVE_POINT_PATH_KEY);
+        if(StringUtils.isNotBlank(savePointPath)){
+            String allowNonRestoredState = confProperties.getOrDefault(ConfigConstrant.ALLOW_NON_RESTORED_STATE_KEY, "false").toString();
+            program.setSavepointRestoreSettings(SavepointRestoreSettings.forPath(savePointPath, BooleanUtils.toBoolean(allowNonRestoredState)));
+        }
+
+        if (mode.equals(ClusterMode.yarnPer.name())){
+            String flinkConfDir = launcherOptions.getFlinkconf();
+            //主要就是去解析flink-conf.yaml
+            Configuration config = StringUtils.isEmpty(flinkConfDir) ? new Configuration() : GlobalConfiguration.loadConfiguration(flinkConfDir);
+            JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, config, 1);
+            PerJobSubmitter.submit(launcherOptions, jobGraph, config);
+        }else {
+            ClusterClient clusterClient = ClusterClientFactory.createClusterClient(launcherOptions);
+            clusterClient.run(program, 1);
+            clusterClient.shutdown();
+        }
 
     }
 
