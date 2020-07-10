@@ -48,6 +48,7 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -155,7 +156,10 @@ public class ExecuteProcessHelper {
         SqlParser.setLocalSqlPluginRoot(paramsInfo.getLocalSqlPluginPath());
         SqlTree sqlTree = SqlParser.parseSql(paramsInfo.getSql());
 
+        //维表
         Map<String, AbstractSideTableInfo> sideTableMap = Maps.newHashMap();
+
+        //source 的table
         Map<String, Table> registerTableCache = Maps.newHashMap();
 
         //register udf
@@ -189,6 +193,15 @@ public class ExecuteProcessHelper {
                                        StreamQueryConfig queryConfig) throws Exception {
         SideSqlExec sideSqlExec = new SideSqlExec();
         sideSqlExec.setLocalSqlPluginPath(localSqlPluginPath);
+
+        //tmpSqlList只会存放下面数据格式的sql
+        /**
+         * * create view udtf_table as
+         *  * 	select	MyTable.userID,MyTable.eventType,MyTable.productID,date1,time1
+         *  *      from MyTable
+         *  *      LEFT JOIN lateral
+         *  *      table(UDTFOneColumnToMultiColumn(productID)) as T(date1,time1) on true;
+         */
         for (CreateTmpTableParser.SqlParserResult result : sqlTree.getTmpSqlList()) {
             sideSqlExec.exec(result.getExecSql(), sideTableMap, tableEnv, registerTableCache, queryConfig, result);
         }
@@ -224,6 +237,7 @@ public class ExecuteProcessHelper {
                     } else {
                         LOG.info("----------exec sql without dimension join-----------");
                         LOG.info("----------real sql exec is--------------------------\n{}", result.getExecSql());
+                        //这种就是往sink 中出插入数据
                         FlinkSQLExec.sqlUpdate(tableEnv, result.getExecSql(), queryConfig);
                         if (LOG.isInfoEnabled()) {
                             LOG.info("exec sql: " + result.getExecSql());
@@ -232,6 +246,24 @@ public class ExecuteProcessHelper {
                 }
             }
         }
+    }
+
+    @Test
+    public void test(){
+        String sql = "insert into" +
+                "       MyResult" +
+                "    select" +
+                "        d.channel," +
+                "        d.info" +
+                "    from" +
+                "        abc3 as d order by d.info";
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+        FlinkPlanner.createFlinkPlanner(tableEnv.getFrameworkConfig(), tableEnv.getPlanner(), tableEnv.getTypeFactory());
+        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
+        SqlNode sqlNode = flinkPlanner.parse(sql);
+        String tmpSql = ((SqlInsert) sqlNode).getSource().toString();
+        System.out.println(tmpSql);
     }
 
     private static void registerUserDefinedFunction(SqlTree sqlTree, List<URL> jarUrlList, TableEnvironment tableEnv)

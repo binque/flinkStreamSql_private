@@ -18,6 +18,8 @@
 
 package com.cj.flink.sql.side;
 
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import com.cj.flink.sql.parser.FlinkPlanner;
@@ -33,6 +35,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
@@ -42,10 +45,10 @@ import static org.apache.calcite.sql.SqlKind.LITERAL;
 import static org.apache.calcite.sql.SqlKind.OR;
 
 /**
- *
- *  将同级谓词信息填充到维表
+ * 将同级谓词信息填充到维表
  * Date: 2019/12/11
  * Company: www.dtstack.com
+ *
  * @author maqi
  */
 public class SidePredicatesParser {
@@ -55,11 +58,40 @@ public class SidePredicatesParser {
         parseSql(sqlNode, sideTableMap, Maps.newHashMap());
     }
 
+    @Test
+    public void test() {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+        FlinkPlanner.createFlinkPlanner(tableEnv.getFrameworkConfig(), tableEnv.getPlanner(), tableEnv.getTypeFactory());
+        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
+        String exeSql1 = "SELECT d.channel,\n" +
+                "        d.info\n" +
+                "    FROM\n" +
+                "        (      SELECT\n" +
+                "            a.*,b.info\n" +
+                "        FROM\n" +
+                "            MyTable a\n" +
+                "        JOIN\n" +
+                "            sideTable b\n" +
+                "                ON a.channel=b.name\n" +
+                "        ) as d";
+        String exeSql = "select MyTable.userID,MyTable.eventType,MyTable.productID,date1,time1\n" +
+                "       from MyTable\n" +
+                "       LEFT JOIN lateral\n" +
+                "       table(UDTFOneColumnToMultiColumn(productID)) as T(date1,time1) on true";
+        SqlNode sqlNode = flinkPlanner.parse(exeSql);
+        Map<String, AbstractSideTableInfo> sideTableMap = Maps.newHashMap();
+        parseSql(sqlNode, sideTableMap, Maps.newHashMap());
+        System.out.println(sideTableMap);
+
+    }
+
     /**
-     *  将谓词信息填充到维表属性
+     * 将谓词信息填充到维表属性
+     *
      * @param sqlNode
      * @param sideTableMap
-     * @param tabMapping  谓词属性中别名对应的真实维表名称
+     * @param tabMapping   谓词属性中别名对应的真实维表名称
      */
     private void parseSql(SqlNode sqlNode, Map<String, AbstractSideTableInfo> sideTableMap, Map<String, String> tabMapping) {
         SqlKind sqlKind = sqlNode.getKind();

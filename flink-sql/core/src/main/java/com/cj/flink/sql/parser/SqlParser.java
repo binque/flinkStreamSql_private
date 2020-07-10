@@ -121,7 +121,6 @@ public class SqlParser {
                 if (!sqlTree.getTableInfoMap().keySet().contains(tableName)){
                     CreateTableParser.SqlParserResult createTableResult = sqlTree.getPreDealTableMap().get(tableName);
 
-                    //一般来说只会是null
                     if(createTableResult == null){
                         CreateTmpTableParser.SqlParserResult tmpTableResult = sqlTree.getTmpTableMap().get(tableName);
                         if (tmpTableResult == null){

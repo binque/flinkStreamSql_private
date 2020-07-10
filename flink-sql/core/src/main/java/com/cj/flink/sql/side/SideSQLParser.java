@@ -21,7 +21,9 @@
 package com.cj.flink.sql.side;
 
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 
 import com.cj.flink.sql.parser.FlinkPlanner;
@@ -41,9 +43,11 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -74,6 +78,49 @@ public class SideSQLParser {
         parseSql(sqlNode, sideTableSet, queueInfo, null, null, null);
         queueInfo.offer(sqlNode);
         return queueInfo;
+    }
+
+    @Test
+    public void test() throws SqlParseException {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+        FlinkPlanner.createFlinkPlanner(tableEnv.getFrameworkConfig(), tableEnv.getPlanner(), tableEnv.getTypeFactory());
+        String sql22 = "SELECT d.channel,\n" +
+                "        d.info\n" +
+                "    FROM\n" +
+                "        (      SELECT\n" +
+                "            a.*,b.info\n" +
+                "        FROM\n" +
+                "            MyTable a\n" +
+                "        JOIN\n" +
+                "            sideTable b\n" +
+                "                ON a.channel=b.name\n" +
+                "        ) as d";
+        String exeSql = "select MyTable.userID,MyTable.eventType,MyTable.productID,date1,time1\n" +
+                "       from MyTable\n" +
+                "       LEFT JOIN lateral\n" +
+                "       table(UDTFOneColumnToMultiColumn(productID)) as T(date1,time1) on true";
+        String sql = "insert\n" +
+                "into\n" +
+                "    MyResult\n" +
+                "    select\n" +
+                "        a.channel,\n" +
+                "        b.xccount\n" +
+                "    from\n" +
+                "        MyTable a\n" +
+                "    join\n" +
+                "        sideTable b\n" +
+                "            on a.channel=b.channel\n" +
+                "    where\n" +
+                "        b.channel = 'xc'\n" +
+                "        and a.pv=10";
+        Map<String, AbstractSideTableInfo> sideTableMap = new HashMap<>();
+        SideSQLParser sideSQLParser = new SideSQLParser();
+        sideTableMap.put("sideTable", null);
+        Queue<Object> exeQueue = sideSQLParser.getExeQueue(sql, sideTableMap.keySet());
+        Object pollObj = exeQueue.poll();
+        System.out.println(pollObj.getClass());
+        System.out.println(exeQueue);
     }
 
 

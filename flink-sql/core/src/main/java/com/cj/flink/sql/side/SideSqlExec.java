@@ -127,7 +127,6 @@ public class SideSqlExec {
             if(pollObj instanceof SqlNode){
                 SqlNode pollSqlNode = (SqlNode) pollObj;
 
-
                 if(pollSqlNode.getKind() == INSERT){
                     FlinkSQLExec.sqlUpdate(tableEnv, pollSqlNode.toString(), queryConfig);
                     if(LOG.isInfoEnabled()){
@@ -162,6 +161,7 @@ public class SideSqlExec {
                 }
 
             }else if (pollObj instanceof JoinInfo){
+                //这里主要就是注册维表的地方
                 LOG.info("----------exec join info----------\n{}", pollObj.toString());
                 joinFun(pollObj, localTableCache, sideTableMap, tableEnv);
             }
