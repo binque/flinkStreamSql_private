@@ -13,6 +13,7 @@
         <module>launcher</module>
         <module>core</module>
         <module>kafka-base</module>
+        <module>kafka</module>
     </modules>
 
 
