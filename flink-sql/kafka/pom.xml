@@ -11,6 +11,9 @@
 
     <artifactId>sql.kafka</artifactId>
     <packaging>pom</packaging>
+    <modules>
+        <module>kafka-source</module>
+    </modules>
 
     <dependencies>
         <dependency>

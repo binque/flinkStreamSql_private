@@ -92,6 +92,10 @@ public class KafkaDeserializationMetricWrapper extends DeserializationMetricWrap
 
     }
 
+    public void setFetcher(AbstractFetcher<Row, ?> fetcher) {
+        this.fetcher = fetcher;
+    }
+
     private Field getConsumerThreadField(AbstractFetcher fetcher) throws NoSuchFieldException {
         try {
             return fetcher.getClass().getDeclaredField("consumerThread");
