@@ -7,6 +7,8 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.calcite.FlinkPlannerImpl;
 import org.junit.Test;
 
@@ -29,6 +31,7 @@ public class InsertSqlParser implements IParser {
 
     // 用来标识当前解析节点的上一层节点是否为 insert 节点
     private static Boolean parentIsInsert = false;
+
     @Override
     public boolean verify(String sql) {
         return StringUtils.isNotBlank(sql) && sql.trim().toLowerCase().startsWith("insert");
@@ -134,19 +137,38 @@ public class InsertSqlParser implements IParser {
                         "        d.info" +
                         "    from" +
                         "        abc3 as d order by d.info";
-        SqlParser.Config config = SqlParser
-                .configBuilder()
-                .setLex(Lex.MYSQL)//使用mysql 语法
-                .build();
-        SqlParser sqlParser = SqlParser.create(sql,config);
-        SqlNode sqlNode = null;
-        try {
-            sqlNode = sqlParser.parseStmt();
-        } catch (SqlParseException e) {
-            throw new RuntimeException("", e);
-        }
+        String sql1 = "insert into sink_student\n" +
+                " select\n" +
+                "name as name,\n" +
+                "age + 10 as new_age,\n" +
+                "sex as sex,\n" +
+                "'终极一班' as class_name\n" +
+                " from source_student";
+//        SqlParser.Config config = SqlParser
+//                .configBuilder()
+//                .setLex(Lex.MYSQL)//使用mysql 语法
+//                .build();
+//        SqlParser sqlParser = SqlParser.create(sql1,config);
+//        SqlNode sqlNode = null;
+//        try {
+//            sqlNode = sqlParser.parseStmt();
+//        } catch (SqlParseException e) {
+//            throw new RuntimeException("", e);
+//        }
+//        SqlParseResult sqlParseResult = new SqlParseResult();
+//        parseNode(sqlNode, sqlParseResult);
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+        FlinkPlanner.createFlinkPlanner(tableEnv.getFrameworkConfig(), tableEnv.getPlanner(), tableEnv.getTypeFactory());
+        FlinkPlannerImpl flinkPlanner = FlinkPlanner.getFlinkPlanner();
+        SqlNode sqlNode = flinkPlanner.parse(sql1);
+
         SqlParseResult sqlParseResult = new SqlParseResult();
         parseNode(sqlNode, sqlParseResult);
+        sqlParseResult.setExecSql(sqlNode.toString());
+        //sqlTree.addExecSql(sqlParseResult);
+
     }
 
     /**

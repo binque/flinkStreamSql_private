@@ -3,6 +3,7 @@ package com.cj.flink.sql.parser;
 
 import com.cj.flink.sql.util.DtStringUtil;
 import com.google.common.collect.Maps;
+import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,8 @@ public class CreateTableParser implements IParser {
 
     private static final Pattern PATTERN = Pattern.compile(PATTERN_STR);
 
+    private static final Pattern PROP_PATTERN = Pattern.compile("^'\\s*(.+)\\s*'$");
+
     public static CreateTableParser newInstance(){
         return new CreateTableParser();
     }
@@ -56,7 +59,8 @@ public class CreateTableParser implements IParser {
     @Override
     public void parseSql(String sql, SqlTree sqlTree) {
         Matcher matcher = PATTERN.matcher(sql);
-        if (matcher.find()){
+        System.out.println(matcher.find());
+        if (!matcher.find()){
             //table的名称
             String tableName = matcher.group(1);
             //字段名称
@@ -76,17 +80,44 @@ public class CreateTableParser implements IParser {
         }
     }
 
+    @Test
+    public void test(){
+        CreateTableParser createTableParser = new CreateTableParser();
+
+        SqlTree sqlTree = new SqlTree();
+        String sql = "CREATE TABLE source_student ( \n" +
+                "     id    INT, \n" +
+                "     name varchar, \n" +
+                "     age  INT, \n" +
+                "     sex  varchar \n" +
+                "  )WITH(\n" +
+                "    type ='kafka',\n" +
+                "    groupId='t3_group_lingqu_lingqu',\n" +
+                "    bootstrapServers ='172.16.19.171:9092,172.16.19.172:9092,172.16.19.173:9092',\n" +
+                "    topic ='t3_lingqu.test'\n" +
+                " )";
+        createTableParser.parseSql(sql,sqlTree);
+    }
+
     private Map parseProp(String propsStr){
         String[] strs = propsStr.trim().split("'\\s*,");
         Map<String, Object> propMap = Maps.newHashMap();
         for(int i=0; i<strs.length; i++){
             List<String> ss = DtStringUtil.splitIgnoreQuota(strs[i], '=');
             String key = ss.get(0).trim();
-            String value = ss.get(1).trim().replaceAll("'", "").trim();
+            String value = extractValue(ss.get(1).trim());
             propMap.put(key, value);
         }
 
         return propMap;
+    }
+
+    private String extractValue(String value) {
+        Matcher matcher = PROP_PATTERN.matcher(value);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        throw new RuntimeException("[" + value + "] format is invalid");
     }
 
     public static class SqlParserResult{
