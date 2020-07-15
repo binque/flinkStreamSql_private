@@ -14,6 +14,7 @@
         <module>core</module>
         <module>kafka-base</module>
         <module>kafka</module>
+        <module>kafka09</module>
     </modules>
 
 
